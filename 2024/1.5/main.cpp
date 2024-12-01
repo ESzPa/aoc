@@ -95,13 +95,13 @@ int main(){
     }
     file.close();
 
-    list1.quicksort();
-    list2.quicksort();
-
     int total = 0;
-    for(int i = 0; i < list1.getsize(); i++){
-        int diff = list1[i] - list2[i];
-        total += diff < 0 ? -diff : diff;
+    for(int val : list1){
+        int count = 0;
+        for(int e : list2){
+            if(val == e) count++;
+        }
+        total += val*count;
     }
 
     std::cout << total << "\n";
