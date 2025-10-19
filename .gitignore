@@ -1,2 +1,6 @@
 main
+check
 .vscode/
+*.o
+*.out
+*.exe
