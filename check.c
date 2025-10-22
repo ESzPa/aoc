@@ -1,10 +1,15 @@
 #include <stdio.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <dirent.h>
 #include <libgen.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <math.h>
+
+#define DAYWRAP (4)
+#define TOTAL_SLOTS (31*2)
 
 typedef enum {
     C_RED,
@@ -13,7 +18,8 @@ typedef enum {
     C_DEFAULT
 } Color;
 
-void print(const char* text, Color color);
+void print(const char* text);
+void printc(const char* text, Color color);
 void check_year(int year);
 
 const int start_year  = 2015;
@@ -34,12 +40,18 @@ int main(int argc, const char** argv) {
         *(last_slash + 1) = '\0';
     }
 
-    check_year(2024);
+    for(int i = start_year; i <= latest_year; ++i){
+        check_year(i);
+    }
 
     return 0;
 }
 
-void print(const char* text, Color color) {
+void print(const char* text) {
+    printc(text, C_DEFAULT);
+}
+
+void printc(const char* text, Color color) {
     char code[32];
     switch(color) {
         case C_RED:
@@ -70,13 +82,11 @@ int daypart_compare(const void *a, const void *b) {
 }
 
 void check_year(int year) {
-    double year_template[31*2];
-    double found_days[31*2] = {0};
+    double year_template[TOTAL_SLOTS];
+    double found_days[TOTAL_SLOTS] = {0};
 
-    double _d = 1.0;
-    for(int i = 0; i < sizeof(year_template)/sizeof(year_template[0]); ++i) {
-        year_template[i] = _d;
-        _d += 0.5;
+    for(int i = 0; i < TOTAL_SLOTS; ++i) {
+        year_template[i] = 1.0 + 0.5 * i;
     }
 
     char yeardir[1024];
@@ -86,8 +96,14 @@ void check_year(int year) {
 
     DIR *dir = opendir(yeardir);
     if(dir == NULL) {
-        perror("opendir failed");
-        exit(1);
+        if(year >= start_year && year <= latest_year) {
+            printc(year_str, C_RED);
+            return;
+        }
+        else {
+            perror("opendir failed");
+            exit(1);
+        }
     }
 
     struct dirent *entry;
@@ -103,18 +119,40 @@ void check_year(int year) {
         found_days[(size_t)((day-1)*2)] = day;
     }
 
+    char freebuf[128];
 
-    char dbuf[64];
-    char ybuf[64];
-    for(int i = 0; i < sizeof(found_days)/sizeof(found_days[0]); ++i) {
-        snprintf(dbuf, sizeof(dbuf), "%.1f", found_days[i]);
-        snprintf(ybuf, sizeof(ybuf), "%.1f", year_template[i]);
-        if(strcmp(dbuf, ybuf) == 0) {
-            print(ybuf, C_BLUE);
+    snprintf(freebuf, sizeof(freebuf), "%d", year);
+    printc(freebuf, C_GREEN);
+
+    int idx = 0;
+    while (idx < TOTAL_SLOTS) {
+        bool done = fabs(found_days[idx] - year_template[idx]) < 0.01;
+
+        int wrap_until = idx;
+        while (wrap_until + 1 < TOTAL_SLOTS) {
+            bool next_done = fabs(found_days[wrap_until + 1] - year_template[wrap_until + 1]) < 0.01;
+            if (next_done != done) break;
+            ++wrap_until;
+        }
+
+        char mark[8];
+        if(wrap_until == TOTAL_SLOTS-1) {
+            snprintf(mark, sizeof(mark), "└─");
         }
         else {
-            print(ybuf, C_RED);
+            snprintf(mark, sizeof(mark), "├─");
         }
+
+        if (wrap_until == idx) {
+            snprintf(freebuf, sizeof(freebuf), "%s%4.1f", mark, year_template[idx]);
+            printc(freebuf, done ? C_BLUE : C_RED);
+        } 
+        else {
+            snprintf(freebuf, sizeof(freebuf), "%s%4.1f –> %-5.1f", mark, year_template[idx], year_template[wrap_until]);
+            printc(freebuf, done ? C_BLUE : C_RED);
+        }
+
+        idx = wrap_until + 1;
     }
 
     closedir(dir);
