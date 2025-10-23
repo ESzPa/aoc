@@ -27,6 +27,9 @@ namespace aoc {
 
         matrix(const matrix& other) = default;
 
+        size_t rows()   const   { return rows_; }
+        size_t columns() const   { return cols_; }
+
         T& at(size_t x, size_t y) {
             return matrix_[x][y];
         }
@@ -49,6 +52,17 @@ namespace aoc {
             }
 
             return matrix_[x][y];
+        }
+
+        template <typename Predicate>
+        size_t count(Predicate predicate) {
+            size_t count = 0;
+            for(auto& row : matrix_) {
+                for(T& e : row) {
+                    if(predicate(e)) ++count;
+                }
+            }
+            return count;
         }
     };
 }
