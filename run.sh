@@ -45,6 +45,7 @@ print() {
 
     echo -e "${code}${text}${NC}"
 }
+
 run_part() {
     local daypart=$1
     local realpart=$2
@@ -57,7 +58,7 @@ run_part() {
         return
     fi
 
-    g++ -std=c++17 -O2 -pipe -o "$BIN" "$SRC"
+    g++ -std=c++17 -O2 -pipe -I. -o "$BIN" "$SRC"
 
     print "$YEAR/$DAY:$realpart" green
     (

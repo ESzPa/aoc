@@ -10,11 +10,10 @@ namespace aoc {
         std::vector<std::vector<T>> matrix_;
 
         inline void resize(size_t new_rows, size_t new_cols) {
-            matrix_.resize(new_rows, std::vector<T>(cols_, T()));
-
-            for(auto& row : matrix_) {
+            for (auto& row : matrix_) {
                 row.resize(new_cols, T());
             }
+            matrix_.resize(new_rows, std::vector<T>(new_cols, T()));
 
             rows_ = new_rows;
             cols_ = new_cols;
@@ -41,7 +40,7 @@ namespace aoc {
                 resize(std::max(rows_, x + 1), std::max(cols_, y + 1));
             }
 
-            return &matrix_[x][y];
+            return matrix_[x][y];
         }
 
         const T& operator()(size_t x, size_t y) const {
@@ -49,7 +48,7 @@ namespace aoc {
                 throw std::out_of_range("Matrix index out of bounds");
             }
 
-            return &matrix_[x][y];
+            return matrix_[x][y];
         }
     };
 }
