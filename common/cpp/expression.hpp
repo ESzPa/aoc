@@ -26,7 +26,8 @@ namespace aoc::utils {
             {'%', [](int64_t a, int64_t b){ return a % b; }},
             {'^', [](int64_t a, int64_t b){ return std::pow(a, b); }},
             {'&', [](int64_t a, int64_t b){ return a & b; }},
-            {'|', [](int64_t a, int64_t b){ return a | b; }}
+            {'|', [](int64_t a, int64_t b){ return a | b; }},
+            {'#', [](int64_t a, int64_t b){ return std::stoll(std::to_string(a) + std::to_string(b)); }},
         };
 
         inline const std::unordered_map<char, std::function<int64_t(int64_t)>> unary_ops_map = {
