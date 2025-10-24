@@ -9,7 +9,7 @@
 #include <math.h>
 
 #define DAYWRAP (4)
-#define TOTAL_SLOTS (31*2)
+#define TOTAL_SLOTS (25*2)
 
 typedef enum {
     C_RED,
