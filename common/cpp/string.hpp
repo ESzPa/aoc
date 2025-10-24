@@ -13,4 +13,13 @@ namespace aoc::str {
         }
         return tokens;
     }
+
+    inline std::string join(const std::vector<std::string>& parts, const std::string& delim) {
+        std::ostringstream oss;
+        for(size_t i = 0; i < parts.size(); ++i) {
+            if(i > 0) oss << delim;
+            oss << parts[i];
+        } 
+        return oss.str();
+    }
 }
