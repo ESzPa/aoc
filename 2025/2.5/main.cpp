@@ -5,16 +5,8 @@
 #include <sstream>
 
 bool is_repeated(const std::string& str) {
-    int n = str.size();
-    for (int len = 1; len * 2 <= n; ++len) {
-        if (n % len == 0) {
-            std::string part = str.substr(0, len);
-            std::string built;
-            for (int i = 0; i < n / len; ++i) built += part;
-            if (built == str) return true;
-        }
-    }
-    return false;
+    return (str + str).substr(1, 2 * str.size() - 2).find(str) !=
+           std::string::npos;
 }
 
 int main(void) {
