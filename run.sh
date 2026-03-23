@@ -58,7 +58,7 @@ run_part() {
         return
     fi
 
-    g++ -std=c++17 -O2 -pipe -I. -o "$BIN" "$SRC"
+    g++ -std=c++23 -O2 -pipe -I. -o "$BIN" "$SRC"
 
     print "$YEAR/$DAY:$realpart" green
     (
