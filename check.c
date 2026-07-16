@@ -10,7 +10,9 @@
 #include <unistd.h>
 
 #define DAYWRAP (4)
+#define MAX_SLOTS (25 * 2)
 #define TOTAL_SLOTS(DAYS) (DAYS ? 12 * 2 : 25 * 2)
+#define MAX_PATH_BUFFER 4096
 
 typedef enum { C_RED, C_BLUE, C_GREEN, C_DEFAULT } Color;
 
@@ -21,7 +23,7 @@ int target_year();
 
 const int start_year = 2015;
 
-char path[1024];
+char path[MAX_PATH_BUFFER];
 
 int main(int argc, const char** argv) {
     ssize_t count = readlink("/proc/self/exe", path, sizeof(path) - 1);
@@ -48,23 +50,24 @@ void print(const char* text) {
 }
 
 void printc(const char* text, Color color) {
-    char code[32];
+    const char* code;
+
     switch(color) {
         case C_RED:
-            strcpy(code, "\x1b[31m");
+            code = "\x1b[31m";
             break;
         case C_BLUE:
-            strcpy(code, "\x1b[34m");
+            code = "\x1b[34m";
             break;
         case C_GREEN:
-            strcpy(code, "\x1b[32m");
+            code = "\x1b[32m";
             break;
         case C_DEFAULT:
-            strcpy(code, "\x1b[0m");
+            code = "\x1b[0m";
             break;
 
         default:
-            perror("How did you get here?");
+            fprintf(stderr, "How did you get here?\n");
             exit(1);
     }
 
@@ -80,15 +83,16 @@ int daypart_compare(const void* a, const void* b) {
 void check_year(int year) {
     const int total_slots = TOTAL_SLOTS(year >= 2025);
 
-    double year_template[total_slots];
-    double found_days[total_slots];
+    double year_template[MAX_SLOTS];
+    double found_days[MAX_SLOTS];
+
     memset(found_days, 0, sizeof(found_days));
 
     for(int i = 0; i < total_slots; ++i) {
         year_template[i] = 1.0 + 0.5 * i;
     }
 
-    char yeardir[1024];
+    char yeardir[MAX_PATH_BUFFER];
     char year_str[16];
     snprintf(year_str, sizeof(year_str), "%d", year);
     snprintf(yeardir, sizeof(yeardir), "%s%s", path, year_str);
@@ -116,11 +120,18 @@ void check_year(int year) {
         if(endptr == entry->d_name)
             continue;
 
-        found_days[(size_t)((day - 1) * 2)] = day;
+        size_t idx = (size_t)((day - 1.0) * 2.0);
+        if(idx < (size_t)total_slots) {
+            found_days[idx] = day;
+        }
+        else {
+            fprintf(stderr, "ERROR: Unexpected directory name: %s\n", entry->d_name);
+        }
     }
 
-    char freebuf[128];
+    closedir(dir);
 
+    char freebuf[128];
     snprintf(freebuf, sizeof(freebuf), "%d", year);
     printc(freebuf, C_GREEN);
 
@@ -156,8 +167,6 @@ void check_year(int year) {
 
         idx = wrap_until + 1;
     }
-
-    closedir(dir);
 }
 
 int target_year() {
