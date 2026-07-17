@@ -1,7 +1,9 @@
 #include <dirent.h>
 #include <libgen.h>
 #include <math.h>
+#include <stdarg.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,64 +16,44 @@
 #define TOTAL_SLOTS(DAYS) (DAYS ? 12 * 2 : 25 * 2)
 #define MAX_PATH_BUFFER 4096
 
-typedef enum { C_RED, C_BLUE, C_GREEN, C_DEFAULT } Color;
+typedef enum Color : uint8_t { BLACK = 0, RED, GREEN, YELLOW, BLUE, PURPLE, CYAN, WHITE } Color;
 
-void print(const char* text);
-void printc(const char* text, Color color);
-void check_year(int year);
-int target_year();
+const char* ANSIColorTable[] = {"\e[0;30m", "\e[0;31m", "\e[0;32m", "\e[0;33m",
+                                "\e[0;34m", "\e[0;35m", "\e[0;36m", "\e[0;37m"};
+const char* ANSIReset = "\033[0m";
 
 const int start_year = 2015;
 
 char path[MAX_PATH_BUFFER];
 
-int main(int argc, const char** argv) {
-    ssize_t count = readlink("/proc/self/exe", path, sizeof(path) - 1);
-    if(count == -1) {
-        perror("readlink failed");
-        return 1;
-    }
-    path[count] = '\0';
+void printc(Color color, const char* format, ...) {
+    va_list args;
+    va_start(args, format);
 
-    char* last_slash = strrchr(path, '/');
-    if(last_slash != NULL) {
-        *(last_slash + 1) = '\0';
-    }
+    printf("%s", ANSIColorTable[(size_t)color]);
+    vprintf(format, args);
+    printf("%s\n", ANSIReset);
 
-    for(int i = start_year; i <= target_year(); ++i) {
-        check_year(i);
-    }
-
-    return 0;
+    va_end(args);
 }
 
-void print(const char* text) {
-    printc(text, C_DEFAULT);
-}
+int target_year() {
+    time_t t = time(NULL);
+    struct tm* now = localtime(&t);
 
-void printc(const char* text, Color color) {
-    const char* code;
-
-    switch(color) {
-        case C_RED:
-            code = "\x1b[31m";
-            break;
-        case C_BLUE:
-            code = "\x1b[34m";
-            break;
-        case C_GREEN:
-            code = "\x1b[32m";
-            break;
-        case C_DEFAULT:
-            code = "\x1b[0m";
-            break;
-
-        default:
-            fprintf(stderr, "How did you get here?\n");
-            exit(1);
+    if(now == NULL) {
+        fprintf(stderr, "localtime() failed\n");
+        exit(1);
     }
 
-    printf("%s%s\x1b[0m\n", code, text);
+    int current_year = now->tm_year + 1900;
+
+    if(now->tm_mon < 11) {
+        return current_year - 1;
+    }
+    else {
+        return current_year;
+    }
 }
 
 int daypart_compare(const void* a, const void* b) {
@@ -95,12 +77,12 @@ void check_year(int year) {
     char yeardir[MAX_PATH_BUFFER];
     char year_str[16];
     snprintf(year_str, sizeof(year_str), "%d", year);
-    snprintf(yeardir, sizeof(yeardir), "%s%s", path, year_str);
+    snprintf(yeardir, sizeof(yeardir) - sizeof(year_str), "%s%s", path, year_str);
 
     DIR* dir = opendir(yeardir);
     if(dir == NULL) {
         if(year >= start_year && year <= target_year()) {
-            printc(year_str, C_RED);
+            printc(RED, year_str);
             return;
         }
         else {
@@ -133,7 +115,7 @@ void check_year(int year) {
 
     char freebuf[128];
     snprintf(freebuf, sizeof(freebuf), "%d", year);
-    printc(freebuf, C_GREEN);
+    printc(GREEN, freebuf);
 
     int idx = 0;
     while(idx < total_slots) {
@@ -157,28 +139,34 @@ void check_year(int year) {
 
         if(wrap_until == idx) {
             snprintf(freebuf, sizeof(freebuf), "%s%4.1f", mark, year_template[idx]);
-            printc(freebuf, done ? C_BLUE : C_RED);
+            printc(done ? BLUE : RED, freebuf);
         }
         else {
             snprintf(freebuf, sizeof(freebuf), "%s%4.1f –> %-5.1f", mark, year_template[idx],
                      year_template[wrap_until]);
-            printc(freebuf, done ? C_BLUE : C_RED);
+            printc(done ? BLUE : RED, freebuf);
         }
 
         idx = wrap_until + 1;
     }
 }
 
-int target_year() {
-    time_t t = time(NULL);
-    struct tm* now = localtime(&t);
-
-    int current_year = now->tm_year + 1900;
-
-    if(now->tm_mon < 11) {
-        return current_year - 1;
+int main(int argc, const char** argv) {
+    ssize_t count = readlink("/proc/self/exe", path, sizeof(path) - 1);
+    if(count == -1) {
+        perror("readlink failed");
+        return 1;
     }
-    else {
-        return current_year;
+    path[count] = '\0';
+
+    char* last_slash = strrchr(path, '/');
+    if(last_slash != NULL) {
+        last_slash[1] = '\0';
     }
+
+    for(int i = start_year; i <= target_year(); ++i) {
+        check_year(i);
+    }
+
+    return 0;
 }
